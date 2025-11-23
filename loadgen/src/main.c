@@ -8,9 +8,8 @@
 #include <time.h>
 
 #include "loadgen.h"
-#include "key_registry.h"   /* << ensure this is present */
+#include "key_registry.h"
 
- /* forward */
 void *worker_func(void *arg);
 static void usage(const char *prog);
 
@@ -32,6 +31,10 @@ volatile int stop_flag = 0;
 /* Global key registry instance (used by worker.c) */
 key_registry_t g_keys;
 
+static size_t discard_cb(char *ptr, size_t size, size_t nmemb, void *userdata) {
+    return size * nmemb;
+}
+
 static int do_post_once(CURL *curl, const char *key, const char *value) {
     char json[512];
     snprintf(json, sizeof(json), "{\"key\":\"%s\",\"value\":\"%s\"}", key, value);
@@ -41,7 +44,7 @@ static int do_post_once(CURL *curl, const char *key, const char *value) {
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdrs);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discard_cb);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
     CURLcode res = curl_easy_perform(curl);
     long rc = 0;
@@ -91,11 +94,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    printf("LoadGen config: server=%s threads=%d duration=%ds mix=%d,%d,%d prefix=%s workload=%d pool=%zu popular=%zu\n",
-           g_cfg.server_url, g_cfg.threads, g_cfg.duration,
-           g_cfg.mix_get, g_cfg.mix_post, g_cfg.mix_delete, g_cfg.key_prefix,
-           (int)g_cfg.workload, g_cfg.key_pool_size, g_cfg.popular_size);
-
+    printf("LoadGen in progress...\n");
     metrics_init(&g_metrics);
 
     /* initialize key registry with configured capacity */
