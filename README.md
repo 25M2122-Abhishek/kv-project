@@ -68,7 +68,40 @@ Data is durably stored in PostgreSQL, while hot data is served from a thread-saf
 
 # KV Load Generator
 
+The Key-Value Load Generator is a high-throughput, configurable benchmark tool designed to stress-test the Key-Value Server by simulating realistic client workloads. 
+It performs millions of mixed GET/POST/DELETE operations using asynchronous concurrency and collects detailed latency/throughput metrics in real time.
+It supports four workload modes:
+	- Get-all
+	- Get-popular
+	- Put-all
+	- Mix
+
 ## Features
+Key Registry
+A global thread-safe key pool is maintained:
+	- Backed by dynamic array + mutex
+	- Stores keys created by POST operations
+	- Allows GET/DELETE to target realistic distributions
+
+Per-Thread Execution Model (Thread Pool)
+Each load-generator thread is fully independent and executes the workload loop:
+	- Prepares request (key/value generation)
+	- Performs HTTP operation
+	- Records latency statistics
+	- Repeats until duration ends
+
+Networking Layer
+To maximize throughput and reduce overhead, each worker thread:
+	- Initializes one CURL easy handle
+	- Reuses it for every request instead of creating/destroying per request
+
+Statistics & Reporting
+Every thread pushes measurements into a shared statistics collector:
+	- Request count per method
+	- Success/failure breakdown
+	- Avg latencies
+	- Throughput (req/sec)
+Output is printed in a structured summary.
 
 ## Build Instructions
 
